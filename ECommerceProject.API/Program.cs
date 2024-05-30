@@ -1,4 +1,5 @@
 using ECommerceProject.API.DataAccess;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,10 @@ builder.Services.AddDbContext<DatabaseContext>(options =>
     options.UseNpgsql(connectionString);
     // options.UseLazyLoadingProxies();
 });
+
+// Disable ModelState automatic valid check
+// builder.Services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
