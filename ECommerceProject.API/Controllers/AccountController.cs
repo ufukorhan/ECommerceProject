@@ -107,7 +107,7 @@ public class AccountController : ControllerBase
     {
         Resp<AuthenticateResponseModel> response = new Resp<AuthenticateResponseModel>();
         model.Username = model.Username.Trim().ToLower();
-        Account account =
+        Account? account =
             _db.Accounts.SingleOrDefault(
                 x => x.Username.ToLower() == model.Username && x.Password == model.Password);
         if (account != null)
