@@ -1,6 +1,7 @@
 using ECommerceProject.API.DataAccess;
 using ECommerceProject.API.Entities;
 using ECommerceProject.Core;
+using ECommerceProject.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
