@@ -1,12 +1,14 @@
 using ECommerceProject.API.DataAccess;
 using ECommerceProject.API.Entities;
 using ECommerceProject.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerceProject.API.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Authorize(Roles = "Admin")]
 public class CategoryController : ControllerBase
 {
     private DatabaseContext _db;

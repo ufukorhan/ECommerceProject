@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ECommerceProject.API.DataAccess;
 using ECommerceProject.API.Entities;
 using ECommerceProject.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyServices;
 
@@ -9,6 +10,7 @@ namespace ECommerceProject.API.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Authorize(Roles = "Admin")]
 public class AccountController : ControllerBase
 {
     // Applyment: Satici Basvuru
@@ -100,6 +102,7 @@ public class AccountController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpPost("authenticate")]
     [ProducesResponseType(200, Type = typeof(Resp<AuthenticateResponseModel>))]
     [ProducesResponseType(400, Type = typeof(Resp<AuthenticateResponseModel>))]
