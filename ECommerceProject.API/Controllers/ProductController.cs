@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ECommerceProject.API.DataAccess;
 using ECommerceProject.API.Entities;
 using ECommerceProject.Core;
@@ -27,7 +28,7 @@ public class ProductController : ControllerBase
     public IActionResult List()
     {
         Resp<List<ProductModel>> response = new Resp<List<ProductModel>>();
-        
+
         List<ProductModel> list = _db.Products
             .Include(x => x.Category)
             .Include(x => x.Account)
@@ -51,7 +52,7 @@ public class ProductController : ControllerBase
 
         return Ok(response);
     }
-    
+
     [HttpGet("list/{accountId}")]
     [ProducesResponseType(200, Type = typeof(Resp<List<ProductModel>>))]
     public IActionResult ListByAccountId([FromRoute] int accountId)
@@ -91,7 +92,7 @@ public class ProductController : ControllerBase
     public IActionResult GetById([FromRoute] int productId)
     {
         Resp<ProductModel> response = new Resp<ProductModel>();
-        
+
         Product? product = _db.Products
             .Include(x => x.Category)
             .Include(x => x.Account)
@@ -171,15 +172,84 @@ public class ProductController : ControllerBase
         return Ok(response);
     }
 
-    /*[HttpPut("update/{id}")]
-    public IActionResult Update([FromRoute] int id, [FromBody] CategoryUpdateModel model)
+    [HttpPut("update/{id}")]
+    [ProducesResponseType(200, Type = typeof(Resp<ProductModel>))]
+    [ProducesResponseType(400, Type = typeof(Resp<ProductModel>))]
+    [ProducesResponseType(404, Type = typeof(Resp<ProductModel>))]
+    public IActionResult Update([FromRoute] int id, [FromBody] ProductUpdateModels model)
     {
-    
+        Resp<ProductModel> response = new Resp<ProductModel>();
+        int accountId = int.Parse(HttpContext.User.FindFirst("id").Value);
+        string role = HttpContext.User.FindFirst(ClaimTypes.Role).Value;
+
+        Product? product = _db.Products.SingleOrDefault(x =>
+            x.Id == id && (role == "Admin" || role != "Admin" && x.AccountId == accountId));
+
+
+        if (product == null)
+            return NotFound(response);
+
+        string productName = model.Name.Trim().ToLower();
+
+        if (_db.Products.Any(x =>
+                x.Name.ToLower() == productName && x.Id != id &&
+                (role == "Admin" || role != "Admin" && x.AccountId == accountId)))
+        {
+            response.AddError(nameof(model.Name), "Bu ürün adi zaten mevcuttur.");
+            return BadRequest(response);
+        }
+
+        product.Name = model.Name;
+        product.Description = model.Description;
+        product.UnitPrice = model.UnitPrice;
+        product.DiscountedPrice = model.DiscountedPrice;
+        product.Discontinued = model.Discontinued;
+        product.CategoryId = model.CategoryId;
+
+        _db.SaveChanges();
+
+        product = _db.Products
+            .Include(x => x.Category)
+            .Include(x => x.Account)
+            .SingleOrDefault(x => x.Id == id)!;
+
+        ProductModel data = new ProductModel
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Description = product.Description,
+            UnitPrice = product.UnitPrice,
+            DiscountedPrice = product.DiscountedPrice,
+            Discontinued = product.Discontinued,
+            CategoryId = product.CategoryId,
+            AccountId = product.AccountId,
+            CategoryName = product.Category.Name,
+            AccountCompanyName = product.Account.CompanyName
+        };
+
+        response.Data = data;
+
+        return Ok(response);
     }
 
     [HttpDelete("delete/{id}")]
+    [ProducesResponseType(200, Type = typeof(Resp<object>))]
+    [ProducesResponseType(404, Type = typeof(Resp<object>))]
     public IActionResult Delete([FromRoute] int id)
     {
+        Resp<object> response = new Resp<object>();
+        int accountId = int.Parse(HttpContext.User.FindFirst("id")!.Value);
+        string role = HttpContext.User.FindFirst(ClaimTypes.Role)!.Value;
 
-    }*/
+        Product? product = _db.Products.SingleOrDefault(x =>
+            x.Id == id && (role == "Admin" || role != "Admin" && x.AccountId == accountId));
+
+        if (product == null)
+            return NotFound(response);
+
+        _db.Products.Remove(product);
+        _db.SaveChanges();
+
+        return Ok(response);
+    }
 }
