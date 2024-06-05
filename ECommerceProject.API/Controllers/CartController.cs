@@ -55,6 +55,7 @@ public class CartController : ControllerBase
 
     [HttpPost("AddToCart/{accountId}")]
     [ProducesResponseType(200, Type = typeof(Resp<CartModel>))]
+    [ProducesResponseType(404, Type = typeof(Resp<CartModel>))]
     public IActionResult AddToCart([FromRoute] int accountId, [FromBody] AddToCartModel model)
     {
         Resp<CartModel> response = new Resp<CartModel>();
@@ -76,6 +77,11 @@ public class CartController : ControllerBase
         }
 
         Product? product = _db.Products.Find(model.ProductId);
+        if (product == null)
+        {
+            return NotFound(response);
+        }
+
         cart.CartProducts.Add(new CartProduct
         {
             CartId = cart.Id,
@@ -88,7 +94,7 @@ public class CartController : ControllerBase
 
         CartModel data = CartToCartModel(cart);
         response.Data = data;
-        
+
         return Ok(response);
     }
 
@@ -105,15 +111,16 @@ public class CartController : ControllerBase
 
         foreach (CartProduct cartProduct in cart.CartProducts)
         {
-            data.CartProducts.Add(new CartProductModel
-            {
-                Id = cartProduct.Id,
-                CartId = cartProduct.CartId.Value,
-                UnitPrice = cartProduct.UnitPrice,
-                DiscountedPrice = cartProduct.DiscountedPrice,
-                Quantity = cartProduct.Quantity,
-                ProductId = cartProduct.ProductId.Value
-            });
+            if (cartProduct is { CartId: not null, ProductId: not null })
+                data.CartProducts.Add(new CartProductModel
+                {
+                    Id = cartProduct.Id,
+                    CartId = cartProduct.CartId.Value,
+                    UnitPrice = cartProduct.UnitPrice,
+                    DiscountedPrice = cartProduct.DiscountedPrice,
+                    Quantity = cartProduct.Quantity,
+                    ProductId = cartProduct.ProductId.Value
+                });
         }
 
         return data;

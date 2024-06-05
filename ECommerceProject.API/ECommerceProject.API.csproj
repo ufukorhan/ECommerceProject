@@ -23,6 +23,7 @@
     <ItemGroup>
       <ProjectReference Include="..\ECommerceProject.Core\ECommerceProject.Core.csproj" />
       <ProjectReference Include="..\MyServices\MyServices.csproj" />
+      <ProjectReference Include="..\PaymentAPI.models\PaymentAPI.models.csproj" />
     </ItemGroup>
 
     <ItemGroup>
