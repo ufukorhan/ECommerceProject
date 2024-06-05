@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MyServices;
 using PaymentAPI.models;
 
 namespace ECommerceProject.API.Controllers;
@@ -39,28 +40,22 @@ public class PaymentController : ControllerBase
             .SingleOrDefault(x => x.Id == cartId);
 
         string paymentApiEndpoint = _configuration["PaymentAPI:Endpoint"]!;
+        
+        HttpClientService client = new HttpClientService(domain: paymentApiEndpoint);
 
         if (!cart.IsClosed)
         {
             decimal totalPrice = model.TotalPriceOverride ?? cart.CartProducts.Sum(x => x.Quantity * x.DiscountedPrice);
 
-            HttpClient client = new HttpClient();
-
             AuthRequestModel authRequestModel = new AuthRequestModel { Username = "ufukorhan", Password = "123123" };
-            StringContent content = new StringContent(
-                JsonSerializer.Serialize(authRequestModel),
-                encoding: Encoding.UTF8, mediaType: "application/json");
 
-            HttpResponseMessage authResponse =
-                client.PostAsync($"{paymentApiEndpoint}/Pay/authenticate", content).Result;
+            HttpClientServiceResponse<AuthResponseModel> authResponse =
+                client.Post<AuthRequestModel, AuthResponseModel>(
+                    fragment: "/Pay/authenticate", data: authRequestModel);
 
             if (authResponse.StatusCode == HttpStatusCode.OK)
             {
-                string authJsonContent = authResponse.Content.ReadAsStringAsync().Result;
-                AuthResponseModel authResponseModel = JsonSerializer
-                    .Deserialize<AuthResponseModel>(
-                        authJsonContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                string token = authResponseModel.Token;
+                string token = authResponse.Data.Token;
 
                 PaymentRequestModel paymentRequestModel = new PaymentRequestModel
                 {
@@ -71,25 +66,15 @@ public class PaymentController : ControllerBase
                     TotalPrice = totalPrice
                 };
 
-                StringContent paymentContent = new StringContent(
-                    JsonSerializer.Serialize(paymentRequestModel),
-                    Encoding.UTF8, "application/json");
-
-                client.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue(scheme: JwtBearerDefaults.AuthenticationScheme, parameter: token);
-
-                HttpResponseMessage paymentResponse = client.PostAsync(
-                    $"{paymentApiEndpoint}/Pay/Payment", paymentContent).Result;
+                HttpClientServiceResponse<PaymentResponseModel> paymentResponse =
+                    client.Post<PaymentRequestModel, PaymentResponseModel>(
+                        fragment: "/Pay/Payment", data: paymentRequestModel, token: token);
 
                 if (paymentResponse.StatusCode == HttpStatusCode.OK)
                 {
-                    string paymentJsonContent = paymentResponse.Content.ReadAsStringAsync().Result;
-                    PaymentResponseModel paymentResponseModel =
-                        JsonSerializer.Deserialize<PaymentResponseModel>(paymentJsonContent,
-                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (paymentResponseModel.Result == "ok")
+                    if (paymentResponse.Data.Result == "ok")
                     {
-                        string transactionId = paymentResponseModel.TransactionId;
+                        string transactionId = paymentResponse.Data.TransactionId;
                         Payment payment = new Payment
                         {
                             CartId = cartId,
@@ -120,7 +105,6 @@ public class PaymentController : ControllerBase
                         };
 
                         result.Data = data;
-
                         return Ok(result);
                     }
 
@@ -130,12 +114,12 @@ public class PaymentController : ControllerBase
                 }
 
                 Resp<string> paymentResult = new Resp<string>();
-                paymentResult.AddError("payment", paymentResponse.Content.ReadAsStringAsync().Result);
+                paymentResult.AddError("payment", paymentResponse.ResponseContent);
                 return BadRequest(paymentResult);
             }
 
             Resp<string> authResult = new Resp<string>();
-            authResult.AddError("username", authResponse.Content.ReadAsStringAsync().Result);
+            authResult.AddError("username", authResponse.ResponseContent);
 
             return BadRequest(authResult);
         }
@@ -148,6 +132,7 @@ public class PaymentController : ControllerBase
                 $"Sepet kapalı ama ödemesi yapılmamış görünmektedir. Sorun için sistem sağlayıcısı ile görüşmeniz gerekiypr.. Cart Id : {cartId}");
             return BadRequest(result);
         }
+
         PaymentModel payData = new PaymentModel
         {
             Id = paymentRes.Id,
@@ -164,6 +149,5 @@ public class PaymentController : ControllerBase
         result.Data = payData;
 
         return Ok(result);
-        
     }
 }

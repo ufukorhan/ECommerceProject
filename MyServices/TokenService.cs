@@ -7,7 +7,9 @@ namespace MyServices;
 
 public class TokenService
 {
-    public static string GenerateToken(string jwtKey, DateTime expires, IEnumerable<Claim> claims, string issuer="site.com", string audience="site.com")
+    public static string GenerateToken(
+        string jwtKey, DateTime expires, IEnumerable<Claim> claims,
+        string issuer = "site.com", string audience = "site.com")
     {
         byte[] key = Encoding.UTF8.GetBytes(jwtKey);
         SymmetricSecurityKey securityKey = new SymmetricSecurityKey(key);
